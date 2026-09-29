@@ -1,0 +1,15 @@
+# ROS / ROS 2 ignored folders
+build/
+devel/
+install/
+log/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
