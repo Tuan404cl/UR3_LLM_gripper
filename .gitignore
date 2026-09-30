@@ -4,6 +4,9 @@ devel/
 install/
 log/
 
+# Local API credentials
+.env
+
 # IDEs and Editors
 .vscode/
 .idea/

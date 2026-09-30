@@ -26,13 +26,15 @@
     </link>
   
     <joint name="robotiq_coupler_joint" type="fixed">
-      <origin xyz="0 0 0.004" rpy="0 0 ${-pi/2.0}" />
+      <!-- coupler is 14 mm thick; place its lower face at the tool0 flange -->
+      <origin xyz="0 0 0.007" rpy="0 0 ${-pi/2.0}" />
       <parent link="tool0"/>
       <child link="robotiq_coupler"/>
     </joint>
 
     <joint name="ur3e_robotiq_2f_140_joint" type="fixed">
-      <origin xyz="0 0 0.004" rpy="0 0 ${-pi/2.0}" />
+      <!-- mount the gripper from the upper face of the coupler -->
+      <origin xyz="0 0 0.007" rpy="0 0 ${-pi/2.0}" />
       <parent link="robotiq_coupler"/>
       <child link="robotiq_arg2f_base_link"/>
     </joint>
