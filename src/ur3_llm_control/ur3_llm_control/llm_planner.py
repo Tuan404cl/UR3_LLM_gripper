@@ -1,18 +1,52 @@
 import requests
 import json
 import re
+import os
+from pathlib import Path
+
+
+def _load_openrouter_api_key():
+    key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if key:
+        return key
+
+    search_roots = (Path.cwd(), Path(__file__).resolve().parent)
+    checked = set()
+    for root in search_roots:
+        for directory in (root, *root.parents):
+            env_file = directory / ".env"
+            if env_file in checked:
+                continue
+            checked.add(env_file)
+            if not env_file.is_file():
+                continue
+
+            for line in env_file.read_text().splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("export "):
+                    line = line[7:].strip()
+                name, separator, value = line.partition("=")
+                if not separator or name.strip() != "OPENROUTER_API_KEY":
+                    continue
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                    value = value[1:-1]
+                if value:
+                    os.environ["OPENROUTER_API_KEY"] = value
+                    return value
+    return None
 
 class LLMPlanner:
     def __init__(self):
-        # ⚠️ THAY API KEY CỦA BẠN VÀO ĐÂY (Nằm trong cặp dấu ngoặc kép, KHÔNG có ngoặc < >)
-        # Ví dụ: self.api_key = "sk-or-v1-1a2b3c4d..."
-        self.api_key = ""
+        # Read credentials from the shell environment; never keep a key in source.
+        self.api_key = _load_openrouter_api_key()
         
         self.url = "https://openrouter.ai/api/v1/chat/completions"
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
+        self.headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            self.headers["Authorization"] = f"Bearer {self.api_key}"
         
         self.system_prompt = """
         You are a robot task planner controlling a UR3e robot.
@@ -48,9 +82,16 @@ class LLMPlanner:
             }
         }
         
+        if not self.api_key:
+            print("[API ERROR] Chưa đặt biến môi trường OPENROUTER_API_KEY.")
+            return None
+
         try:
             # Thêm timeout để tránh kẹt tiến trình
             response = requests.post(self.url, headers=self.headers, data=json.dumps(data), timeout=30)
+            if response.status_code == 401:
+                print("[API ERROR] OpenRouter trả 401 Unauthorized; hãy kiểm tra key và quyền truy cập.")
+                return None
             response.raise_for_status()
             
             result = response.json()
